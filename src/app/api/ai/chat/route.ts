@@ -53,8 +53,8 @@ export async function POST(req: Request) {
 
     // INTELLIGENT ROUTING LOGIC
     if (model === "auto" || !model) {
-      const { generateObject } = require("ai");
-      const { z } = require("zod");
+      const { generateObject } = await import("ai");
+      const { z: zodLib } = await import("zod");
       
       const classification = await generateObject({
         model: google("gemini-1.5-flash"),
@@ -66,9 +66,9 @@ Routing logic:
 - 'gemini-1.5-pro': Best for large context, research, long documents, multi-modal vision tasks.
 - 'ollama': Best for privacy-focused, local fallback tasks.`,
         prompt: `User Prompt: ${latestUserMessage.content}`,
-        schema: z.object({
-          selectedModel: z.enum(['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'ollama']),
-          reason: z.string()
+        schema: zodLib.object({
+          selectedModel: zodLib.enum(['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'ollama']),
+          reason: zodLib.string()
         })
       });
       
@@ -82,10 +82,10 @@ Routing logic:
     try {
       // Get the default user for prototyping (In prod: use actual Auth session)
       currentUser = await prisma.user.findFirst({ where: { email: "test@zeno.ai" } });
-      if (currentUser && actualModelName !== "gemini-1.5-pro" && actualModelName !== "gemini-1.5-flash" && currentUser.plan === "FREE") {
-        // Enforce plan restrictions - override to a free model if they try to use GPT-4o or Claude
-        console.log("Access Denied to Pro Model. Downgrading to Gemini for FREE user.");
-        actualModelName = "gemini-1.5-flash";
+      if (currentUser && actualModelName !== "gemini-1.5-pro" && actualModelName !== "ollama" && currentUser.plan === "FREE") {
+        // Enforce plan restrictions - override to a free local model if they try to use GPT-4o or Claude
+        console.log("Access Denied to Pro Model. Downgrading to Local Ollama for FREE user to ensure it is 100% free.");
+        actualModelName = "ollama";
       }
     } catch (e) {
       console.log("Error checking user plan:", e);

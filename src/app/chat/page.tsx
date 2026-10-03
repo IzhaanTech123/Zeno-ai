@@ -37,7 +37,7 @@ export default function ChatInterface() {
     if (!input.trim() && !files?.length) return;
     
     // Convert FileList to an array of URLs for attachments (in real code we'd upload them or read them as base64)
-    let attachments: any[] = [];
+    const attachments: any[] = [];
     if (files && files.length > 0) {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
