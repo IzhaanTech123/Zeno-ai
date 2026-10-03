@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  zeno-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zeno-ai-prod
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./dev.db
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=zeno_ai_super_secret_key_change_me
+    restart: unless-stopped
+    volumes:
+      # Mount the sqlite DB so data persists between container restarts
+      - ./dev.db:/app/dev.db

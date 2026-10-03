@@ -1,0 +1,43 @@
+{
+  "name": "frontend",
+  "version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.69",
+    "@ai-sdk/google": "^4.0.86",
+    "@ai-sdk/openai": "^4.0.82",
+    "@ai-sdk/react": "^4.0.126",
+    "@auth/prisma-adapter": "^2.11.3",
+    "@tailwindcss/typography": "^0.5.20",
+    "@upstash/ratelimit": "^2.2.0",
+    "@upstash/redis": "^1.39.0",
+    "ai": "^7.0.123",
+    "next": "16.3.7",
+    "next-auth": "^4.24.15",
+    "ollama-ai-provider": "^1.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "stripe": "^22.6.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@prisma/client": "^5.22.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.7",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  avatar        String?
+  role          String         @default("USER")
+  plan          String         @default("FREE")
+  stripeSubscriptionId String?
+  stripeCustomerId String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  conversations Conversation[]
+  projects      Project[]
+  subscriptions Subscription[]
+  usageRecords  UsageRecord[]
+}
+
+model Subscription {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId      String
+  status      String   @default("ACTIVE")
+  startDate   DateTime @default(now())
+  renewalDate DateTime?
+  cancelDate  DateTime?
+}
+
+model UsageRecord {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date             DateTime @default(now())
+  messageTokens    Int      @default(0)
+  imageGenerations Int      @default(0)
+  webSearches      Int      @default(0)
+  voiceMinutes     Int      @default(0)
+  fileStorageMb    Int      @default(0)
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  title     String?
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  content        String
+  role           String       // 'user' or 'assistant'
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  status    String   @default("PLANNING")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
