@@ -42,8 +42,9 @@ export default function VisionPage() {
 
       const data = await response.json();
       setResult(data);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -80,6 +81,7 @@ export default function VisionPage() {
           {/* Image Preview */}
           {previewUrl && (
             <div className="flex flex-col items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={previewUrl} alt="Preview" className="max-h-64 rounded-lg shadow-sm" />
               
               <button

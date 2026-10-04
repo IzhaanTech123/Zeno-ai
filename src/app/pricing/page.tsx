@@ -107,7 +107,9 @@ export default function PricingPage() {
                 <span className="text-3xl font-bold text-white">₹0</span>
                 <span className="text-gray-400 text-sm"> / month</span>
               </div>
-              <button onClick={() => handleCheckout('plus')} className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-colors py-2.5 rounded-full text-sm font-medium mb-8">✦ Claim free offer</button>
+              <button disabled={isLoading} onClick={() => handleCheckout('plus')} className="w-full bg-[#3b82f6] hover:bg-[#2563eb] text-white transition-colors py-2.5 rounded-full text-sm font-medium mb-8 disabled:opacity-50">
+                {isLoading ? 'Processing...' : '✦ Claim free offer'}
+              </button>
               
               <div className="text-sm font-medium mb-4 text-white">Everything in Go, and:</div>
               <ul className="space-y-4 text-sm text-gray-300">
@@ -131,7 +133,9 @@ export default function PricingPage() {
                 </div>
                 <span className="text-gray-400 text-sm self-end pb-1"> / month</span>
               </div>
-              <button onClick={() => handleCheckout('pro')} className="w-full bg-white text-black hover:bg-gray-200 transition-colors py-2.5 rounded-full text-sm font-medium mb-8">Upgrade to Pro</button>
+              <button disabled={isLoading} onClick={() => handleCheckout('pro')} className="w-full bg-white text-black hover:bg-gray-200 transition-colors py-2.5 rounded-full text-sm font-medium mb-8 disabled:opacity-50">
+                {isLoading ? 'Processing...' : 'Upgrade to Pro'}
+              </button>
               
               <div className="text-sm font-medium mb-4">Everything in Plus, and:</div>
               <ul className="space-y-4 text-sm text-gray-300">

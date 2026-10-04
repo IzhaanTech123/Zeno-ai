@@ -1,11 +1,23 @@
-// @ts-nocheck
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { Sidebar } from '@/components/Sidebar';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+interface AttachmentItem {
+  url: string;
+  name: string;
+  contentType: string;
+}
+
+interface MessagePart {
+  type: string;
+  text?: string;
+}
 
 export default function ChatInterface() {
   const [files, setFiles] = useState<FileList | null>(null);
@@ -15,16 +27,17 @@ export default function ChatInterface() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [input, setInput] = useState('');
-  // @ts-ignore
   const { messages, sendMessage, status } = useChat({
-    api: '/api/ai/chat',
-    body: {
-      model,
-      conversationId: "default-convo-id" // Replace with dynamic ID if needed
-    }
+    transport: new DefaultChatTransport({
+      api: '/api/ai/chat',
+      body: {
+        model,
+        conversationId: "default-convo-id"
+      }
+    })
   });
 
-  const isLoading = status === 'in_progress';
+  const isLoading = status === 'submitted' || status === 'streaming';
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -36,30 +49,15 @@ export default function ChatInterface() {
     e.preventDefault();
     if (!input.trim() && !files?.length) return;
     
-    // Convert FileList to an array of URLs for attachments (in real code we'd upload them or read them as base64)
-    const attachments: any[] = [];
-    if (files && files.length > 0) {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        // Note: For simplicity in prototype, creating a local object URL or reading as base64
-        // The Vercel AI SDK handles attachments.
-        const base64Url = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = (e) => resolve(e.target?.result as string);
-          reader.readAsDataURL(file);
-        });
-        attachments.push({ url: base64Url, name: file.name, contentType: file.type });
-      }
-    }
-
-    sendMessage({ 
-      role: 'user', 
-      content: input, 
-      experimental_attachments: attachments 
-    });
-    
+    const currentText = input;
+    const currentFiles = files;
     setInput('');
     setFiles(null);
+
+    await sendMessage({ 
+      text: currentText, 
+      files: currentFiles || undefined,
+    });
   };
 
   return (
@@ -85,18 +83,18 @@ export default function ChatInterface() {
                 </button>
               </div>
               <nav className="space-y-1">
-                <a href="/" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white bg-surface-elevated rounded-lg transition-colors" title="Chat AI">
+                <Link href="/" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white bg-surface-elevated rounded-lg transition-colors" title="Chat AI">
                   <svg className="w-5 h-5 text-ai-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                   <span>Chat AI</span>
-                </a>
-                <a href="/image" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Image AI">
+                </Link>
+                <Link href="/image" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Image AI">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                   <span>Image AI</span>
-                </a>
-                <a href="/code" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Code AI">
+                </Link>
+                <Link href="/code" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Code AI">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
                   <span>Code AI</span>
-                </a>
+                </Link>
               </nav>
             </div>
           </aside>
@@ -120,13 +118,13 @@ export default function ChatInterface() {
             <div className="hidden md:flex items-center gap-3">
               {/* Limit Warning (#24) */}
               <div className="text-[11px] font-medium text-amber-500 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
-                You've used 80% of your allowance.
+                You&apos;ve used 80% of your allowance.
               </div>
               
               {/* Smart Usage Indicator (#23) */}
-              <a href="/dashboard" className="text-[11px] font-medium text-text-secondary hover:text-white bg-surface-elevated px-2.5 py-1 rounded-md border border-border-brand transition-colors cursor-pointer">
+              <Link href="/dashboard" className="text-[11px] font-medium text-text-secondary hover:text-white bg-surface-elevated px-2.5 py-1 rounded-md border border-border-brand transition-colors cursor-pointer">
                 80% usage
-              </a>
+              </Link>
             </div>
 
             <button className="w-8 h-8 rounded-full bg-surface-elevated border border-border-brand flex items-center justify-center text-sm font-medium">
@@ -176,49 +174,54 @@ export default function ChatInterface() {
               </div>
             )}
 
-            {messages.map(m => (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={m.role === 'user' 
-                  ? "bg-surface-elevated px-4 py-2.5 md:px-5 md:py-3 rounded-2xl max-w-[90%] md:max-w-[80%] rounded-tr-sm"
-                  : "max-w-[100%] md:max-w-[90%] space-y-4"
-                }>
-                  {m.role !== 'user' && (
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="w-6 h-6 rounded bg-ai-blue flex items-center justify-center">
-                        <span className="text-white text-xs font-bold font-mono">Z</span>
-                      </div>
-                      <span className="text-sm font-semibold">Zeno</span>
-                    </div>
-                  )}
-                  
-                  {/* Handle Image Display if attachments exist */}
-                  {/* @ts-ignore */}
-                  {m.experimental_attachments && m.experimental_attachments.length > 0 && (
-                    <div className="flex gap-2 mb-2">
-                      {/* @ts-ignore */}
-                      {m.experimental_attachments.map((attachment: any, index: number) => (
-                        <img 
-                          key={index}
-                          src={attachment.url} 
-                          alt="Attachment" 
-                          className="w-32 md:w-48 h-auto rounded-lg border border-border-brand"
-                        />
-                      ))}
-                    </div>
-                  )}
+            {messages.map(m => {
+              const attachments = (m as { experimental_attachments?: AttachmentItem[] }).experimental_attachments;
+              const parts = (m as { parts?: MessagePart[] }).parts;
+              const textContent = parts?.filter(p => p.type === 'text').map(p => p.text).join('') || (m as { content?: string }).content || '';
 
-                  <div className={`leading-relaxed ${m.role === 'user' ? 'text-white whitespace-pre-wrap' : 'prose prose-invert max-w-none text-text-secondary'}`}>
-                    {m.role === 'user' ? (
-                      m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (m as any).content
-                    ) : (
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (m as any).content}
-                      </ReactMarkdown>
+              return (
+                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={m.role === 'user' 
+                    ? "bg-surface-elevated px-4 py-2.5 md:px-5 md:py-3 rounded-2xl max-w-[90%] md:max-w-[80%] rounded-tr-sm"
+                    : "max-w-[100%] md:max-w-[90%] space-y-4"
+                  }>
+                    {m.role !== 'user' && (
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-6 h-6 rounded bg-ai-blue flex items-center justify-center">
+                          <span className="text-white text-xs font-bold font-mono">Z</span>
+                        </div>
+                        <span className="text-sm font-semibold">Zeno</span>
+                      </div>
                     )}
+                    
+                    {/* Handle Image Display if attachments exist */}
+                    {attachments && attachments.length > 0 && (
+                      <div className="flex gap-2 mb-2">
+                        {attachments.map((attachment, index) => (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img 
+                            key={index}
+                            src={attachment.url} 
+                            alt="Attachment" 
+                            className="w-32 md:w-48 h-auto rounded-lg border border-border-brand"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    <div className={`leading-relaxed ${m.role === 'user' ? 'text-white whitespace-pre-wrap' : 'prose prose-invert max-w-none text-text-secondary'}`}>
+                      {m.role === 'user' ? (
+                        textContent
+                      ) : (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {textContent}
+                        </ReactMarkdown>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <div ref={messagesEndRef} />
 
             {isLoading && (
@@ -334,22 +337,22 @@ export default function ChatInterface() {
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-surface-dark border-t border-border-brand flex justify-around items-center px-2 pb-safe z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-        <a href="/chat" className="flex flex-col items-center justify-center p-2 text-ai-blue w-16">
+        <Link href="/chat" className="flex flex-col items-center justify-center p-2 text-ai-blue w-16">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
           <span className="text-[10px] mt-1 font-medium">Chat</span>
-        </a>
+        </Link>
         <button onClick={() => setIsMobileMenuOpen(true)} className="flex flex-col items-center justify-center p-2 text-text-secondary hover:text-white transition-colors w-16">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span className="text-[10px] mt-1 font-medium">History</span>
         </button>
-        <a href="/code" className="flex flex-col items-center justify-center p-2 text-text-secondary hover:text-white transition-colors w-16">
+        <Link href="/code" className="flex flex-col items-center justify-center p-2 text-text-secondary hover:text-white transition-colors w-16">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
           <span className="text-[10px] mt-1 font-medium">Projects</span>
-        </a>
-        <a href="/settings" className="flex flex-col items-center justify-center p-2 text-text-secondary hover:text-white transition-colors w-16">
+        </Link>
+        <Link href="/settings" className="flex flex-col items-center justify-center p-2 text-text-secondary hover:text-white transition-colors w-16">
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
           <span className="text-[10px] mt-1 font-medium">Account</span>
-        </a>
+        </Link>
       </nav>
     </div>
   );

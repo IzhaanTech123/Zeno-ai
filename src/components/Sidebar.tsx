@@ -1,13 +1,30 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+interface UserProfile {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  plan?: string;
+  role?: string;
+  avatar?: string | null;
+}
+
+interface ActiveOffer {
+  id: string;
+  title: string;
+  description?: string;
+}
 
 export function Sidebar() {
+  const router = useRouter();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isExploreOpen, setIsExploreOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [activeOffers, setActiveOffers] = useState<any[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [activeOffers, setActiveOffers] = useState<ActiveOffer[]>([]);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -52,7 +69,7 @@ export function Sidebar() {
 
         {/* New Chat Button */}
         <button 
-          onClick={() => window.location.href = '/chat'} 
+          onClick={() => router.push('/chat')} 
           className={`w-full flex items-center justify-center bg-ai-blue hover:bg-ai-blue/90 text-white py-2.5 rounded-lg transition-colors font-medium text-sm ${isSidebarCollapsed ? 'px-0' : 'space-x-2'}`}
         >
           {isSidebarCollapsed ? (

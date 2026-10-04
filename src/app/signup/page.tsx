@@ -2,15 +2,17 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignup = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setTimeout(() => {
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     }, 1500);
   };
 
@@ -90,7 +92,7 @@ export default function SignupPage() {
         </div>
 
         <p className="text-center mt-8 text-sm text-text-secondary">
-          Already have an account? <a href="/login" className="text-white hover:text-ai-purple transition-colors font-medium">Sign in</a>
+          Already have an account? <Link href="/login" className="text-white hover:text-ai-purple transition-colors font-medium">Sign in</Link>
         </p>
 
       </div>

@@ -4,7 +4,15 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-export default function AdminSidebar({ user }: { user: any }) {
+interface AdminUser {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  role?: string;
+  avatar?: string | null;
+}
+
+export default function AdminSidebar({ user }: { user: AdminUser | null }) {
   const pathname = usePathname();
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 

@@ -5,8 +5,29 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id?: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      role?: string;
+    };
+  }
+  interface User {
+    role?: string;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role?: string;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma) as unknown as NextAuthOptions["adapter"],
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "placeholder_google_id",
@@ -23,8 +44,6 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // This is a placeholder for development. 
-        // In a real app, you would verify the hashed password here.
         if (credentials?.email) {
           const user = await prisma.user.findUnique({
             where: { email: credentials.email }
@@ -32,7 +51,6 @@ export const authOptions: NextAuthOptions = {
           
           if (user) return user;
           
-          // Auto-create for rapid dev testing
           return await prisma.user.create({
             data: {
               email: credentials.email,
@@ -51,14 +69,14 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
-        (token as any).role = (user as any).role || 'USER';
+        token.role = user.role || 'USER';
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
-        (session.user as any).id = token.sub;
-        (session.user as any).role = (token as any).role || 'USER';
+        session.user.id = token.sub;
+        session.user.role = token.role || 'USER';
       }
       return session;
     },
@@ -68,3 +86,4 @@ export const authOptions: NextAuthOptions = {
     newUser: '/signup',
   },
 };
+

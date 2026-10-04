@@ -2,10 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 
+interface UserProfile {
+  id?: string;
+  name?: string | null;
+  email?: string | null;
+  plan?: string;
+  role?: string;
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     fetch('/api/user/profile')
@@ -195,6 +203,34 @@ export default function SettingsPage() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                       </button>
                     )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'api' && (
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">API Keys &amp; Providers</h2>
+                  <p className="text-text-secondary text-sm">Configure your personal LLM API keys or use the default free models.</p>
+                </div>
+
+                <div className="bg-surface-elevated border border-border-brand rounded-xl p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">Google Gemini API Key (Free Tier)</label>
+                    <input type="password" placeholder="AIzaSy..." className="w-full bg-surface-dark border border-border-brand text-white rounded-lg px-4 py-2.5 outline-none focus:border-ai-blue" />
+                    <p className="text-xs text-text-secondary mt-1">Get your free key from Google AI Studio (15 req/min free).</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-text-secondary mb-1">OpenAI API Key (Optional)</label>
+                    <input type="password" placeholder="sk-..." className="w-full bg-surface-dark border border-border-brand text-white rounded-lg px-4 py-2.5 outline-none focus:border-ai-blue" />
+                  </div>
+
+                  <div className="pt-2">
+                    <button onClick={handleSave} className="btn-primary">
+                      {isSaving ? 'Saving...' : 'Save Keys'}
+                    </button>
                   </div>
                 </div>
               </div>

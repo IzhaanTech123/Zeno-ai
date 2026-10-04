@@ -124,6 +124,7 @@ export default function ImageGeneration() {
             {generatedImage && (
               <div className="flex justify-center mb-8 animate-in fade-in zoom-in duration-500">
                 <div className="relative group rounded-xl overflow-hidden border border-border-brand shadow-[0_0_40px_rgba(139,92,246,0.15)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={generatedImage} alt="Generated AI Art" className="w-full max-w-2xl h-auto object-cover" />
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
                      <button className="btn-secondary bg-surface-dark border-border-brand">Download</button>

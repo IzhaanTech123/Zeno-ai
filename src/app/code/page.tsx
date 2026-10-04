@@ -1,8 +1,14 @@
-// @ts-nocheck
 "use client";
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+
+interface MessagePart {
+  type: string;
+  text?: string;
+}
 
 export default function CodeWorkstation() {
   const [code, setCode] = useState(
@@ -17,23 +23,24 @@ function calculateFibonacci(n: number): number {
 console.log(calculateFibonacci(10));
 `);
 
-  const [input, setInput] = useState('');
-  // @ts-ignore
+  const [customInput, setCustomInput] = useState('');
   const { messages, sendMessage, status } = useChat({
-    api: '/api/ai/chat',
-    body: {
-      model: "claude-3-5-sonnet" // Force coding model for Workstation
-    }
+    transport: new DefaultChatTransport({
+      api: '/api/ai/chat',
+      body: {
+        model: "claude-3-5-sonnet" // Force coding model for Workstation
+      }
+    })
   });
   
-  const isLoading = status === 'in_progress';
+  const isLoading = status === 'submitted' || status === 'streaming';
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value);
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ role: 'user', content: input });
-    setInput('');
+    if (!customInput.trim()) return;
+    const textToSend = customInput;
+    setCustomInput('');
+    await sendMessage({ text: textToSend });
   };
 
   return (
@@ -49,18 +56,18 @@ console.log(calculateFibonacci(10));
           </div>
 
           <nav className="space-y-1">
-            <a href="/" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Chat AI">
+            <Link href="/" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Chat AI">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
               <span className="hidden md:inline">Chat AI</span>
-            </a>
-            <a href="/image" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Image AI">
+            </Link>
+            <Link href="/image" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-text-secondary hover:text-white hover:bg-surface-elevated rounded-lg transition-colors" title="Image AI">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               <span className="hidden md:inline">Image AI</span>
-            </a>
-            <a href="/code" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white bg-surface-elevated rounded-lg transition-colors" title="Code AI">
+            </Link>
+            <Link href="/code" className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white bg-surface-elevated rounded-lg transition-colors" title="Code AI">
               <svg className="w-5 h-5 text-ai-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
               <span className="hidden md:inline">Code AI</span>
-            </a>
+            </Link>
           </nav>
         </div>
       </aside>
@@ -81,71 +88,77 @@ console.log(calculateFibonacci(10));
               </div>
             )}
             
-            {messages.map(m => (
-              <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`text-sm p-3 rounded-lg max-w-[90%] ${m.role === 'user' ? 'bg-ai-blue text-white' : 'bg-surface-elevated text-gray-200'}`}>
-                  <div className="whitespace-pre-wrap">{m.parts?.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') || (m as any).content}</div>
+            {messages.map(m => {
+              const parts = (m as { parts?: MessagePart[] }).parts;
+              const textContent = parts?.filter(p => p.type === 'text').map(p => p.text).join('') || (m as { content?: string }).content || '';
+              return (
+                <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`text-sm p-3 rounded-lg max-w-[90%] ${m.role === 'user' ? 'bg-ai-blue text-white' : 'bg-surface-elevated text-gray-200'}`}>
+                    <div className="whitespace-pre-wrap">{textContent}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             
             {isLoading && (
-              <div className="flex flex-col items-start">
-                <div className="text-sm p-3 rounded-lg max-w-[90%] bg-surface-elevated text-gray-400 animate-pulse">
-                  Coding...
-                </div>
+              <div className="flex items-center space-x-2 text-xs text-text-secondary">
+                <div className="w-2 h-2 rounded-full bg-ai-blue animate-ping"></div>
+                <span>Claude is writing code...</span>
               </div>
             )}
           </div>
-
-          <div className="p-4 border-t border-border-brand">
-            <form onSubmit={handleSubmit} className="bg-background border border-border-brand rounded-lg flex items-center p-2 focus-within:border-ai-blue transition-colors">
+          
+          <form onSubmit={handleFormSubmit} className="p-3 border-t border-border-brand">
+            <div className="flex space-x-2">
               <input 
                 type="text" 
-                value={input}
-                onChange={handleInputChange}
-                placeholder="Instruct Zeno..." 
-                className="bg-transparent text-sm w-full outline-none px-2" 
-                disabled={isLoading}
+                value={customInput} 
+                onChange={(e) => setCustomInput(e.target.value)} 
+                placeholder="Ask to refactor, write a function..." 
+                className="flex-1 bg-surface-dark border border-border-brand rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-ai-blue"
               />
-              <button type="submit" disabled={isLoading || !input.trim()} className="bg-ai-blue text-white rounded p-1 disabled:opacity-50">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M12 5l7 7-7 7" /></svg>
+              <button type="submit" disabled={isLoading} className="btn-primary py-2 px-3 text-sm disabled:opacity-50">
+                Send
               </button>
-            </form>
-          </div>
+            </div>
+          </form>
         </div>
 
-        {/* Right Side: Code Editor / Sandbox */}
-        <div className="flex-1 flex flex-col bg-[#1e1e1e]">
-           <header className="h-14 border-b border-border-brand flex items-center justify-between px-4 bg-background">
-            <div className="flex space-x-2">
-              <div className="px-3 py-1 bg-surface-elevated rounded-t-md border-t border-x border-ai-blue text-xs text-ai-blue font-mono">
-                main.ts
-              </div>
+        {/* Right Side: Interactive Code Sandbox */}
+        <div className="flex-1 flex flex-col bg-background">
+          <header className="h-14 border-b border-border-brand flex items-center justify-between px-6 bg-surface-dark">
+            <div className="flex items-center space-x-3">
+              <span className="text-xs bg-surface-elevated px-2.5 py-1 rounded text-text-secondary border border-border-brand">main.ts</span>
+              <span className="text-xs text-text-secondary">TypeScript v5.0</span>
             </div>
-            <div>
-              <button className="btn-primary text-xs py-1 px-3 flex items-center gap-2">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                Run Code
+            
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => {
+                  try {
+                    const result = new Function(code)();
+                    alert("Executed successfully: " + result);
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : 'Unknown execution error';
+                    alert("Execution Error: " + msg);
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-colors shadow-lg shadow-emerald-900/20"
+              >
+                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                <span>Run Code</span>
               </button>
+              <button className="btn-secondary py-1.5 px-3 text-xs">Copy</button>
             </div>
           </header>
           
-          {/* Simulated Code Editor Area */}
-          <div className="flex-1 p-4 font-mono text-sm overflow-auto text-gray-300">
-             <textarea 
-               value={code}
-               onChange={(e) => setCode(e.target.value)}
-               className="w-full h-full bg-transparent outline-none resize-none"
-               spellCheck="false"
-             />
-          </div>
-          
-          {/* Output Terminal */}
-          <div className="h-48 border-t border-border-brand bg-[#0a0a0a] p-4 font-mono text-xs overflow-auto">
-             <div className="text-gray-500 mb-1">$ zeno run main.ts</div>
-             <div className="text-success">55</div>
-             <div className="text-gray-500 mt-2">Process exited with code 0.</div>
+          <div className="flex-1 relative font-mono text-sm">
+            <textarea 
+              value={code} 
+              onChange={(e) => setCode(e.target.value)} 
+              className="w-full h-full bg-[#121214] text-gray-200 p-6 focus:outline-none resize-none font-mono text-sm leading-relaxed"
+              spellCheck="false"
+            />
           </div>
         </div>
 

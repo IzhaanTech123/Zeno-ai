@@ -63,8 +63,9 @@ export default function LoginPage() {
         router.push('/dashboard');
       }, 600);
 
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setErrorMessage(msg);
       setIsLoading(false);
       setStatusMessage(null);
     }

@@ -20,8 +20,9 @@ export async function POST(req: Request) {
       // For local development without webhook secret checking
       event = JSON.parse(body);
     }
-  } catch (err: any) {
-    console.error("Webhook signature verification failed:", err.message);
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : "Webhook signature verification failed";
+    console.error("Webhook signature verification failed:", msg);
     return NextResponse.json({ error: "Webhook Error" }, { status: 400 });
   }
 

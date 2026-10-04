@@ -90,7 +90,7 @@ Routing logic:
     }
 
     // Access Control & Token Usage Variables
-    let currentUser: any;
+    let currentUser: { id: string; plan?: string } | null = null;
     
     try {
       // Get the default user for prototyping (In prod: use actual Auth session)
@@ -130,21 +130,21 @@ Routing logic:
     const aiTools = {
       calculator: tool({
         description: "A tool for evaluating mathematical expressions",
-        parameters: z.object({
+        inputSchema: z.object({
           expression: z.string().describe("The math expression to evaluate (e.g. '2 + 2')"),
         }),
-        execute: async ({ expression }: { expression: string }): Promise<{ result?: any; error?: string }> => {
+        execute: async ({ expression }: { expression: string }): Promise<{ result?: unknown; error?: string }> => {
           try {
             const result = eval(expression);
             return { result };
-          } catch (e) {
+          } catch {
             return { error: "Failed to evaluate expression" };
           }
         },
-      } as any),
+      }),
       webSearch: tool({
         description: "Search the web for real-time information",
-        parameters: z.object({
+        inputSchema: z.object({
           query: z.string().describe("The search query"),
         }),
         execute: async ({ query }: { query: string }): Promise<{ results: string }> => {
@@ -153,22 +153,23 @@ Routing logic:
           }
           return { results: `Simulated search results for: '${query}'. Wikipedia says this is a very interesting topic. (Note: To get real results, add a Tavily or Google Search API key to the environment.)` };
         },
-      } as any),
+      }),
       classifyLocalImage: tool({
         description: "Classify an image using Zeno's local PyTorch Vision Model. Use this when the user asks what an image is.",
-        parameters: z.object({
+        inputSchema: z.object({
           imageUrl: z.string().describe("The URL or path of the image to classify. Leave empty to classify the most recently uploaded image."),
         }),
         execute: async ({ imageUrl }: { imageUrl: string }) => {
           try {
-            let base64Image = null;
+            let base64Image: string | null = null;
             
-            // Check experimental attachments in the latest user message
-            if (latestUserMessage.experimental_attachments && latestUserMessage.experimental_attachments.length > 0) {
-                const attachment = latestUserMessage.experimental_attachments[0];
-                if (attachment.url.startsWith('data:image')) {
-                    base64Image = attachment.url.split(',')[1];
-                }
+            if (imageUrl && imageUrl.startsWith('data:image')) {
+              base64Image = imageUrl.split(',')[1];
+            } else if (latestUserMessage.experimental_attachments && latestUserMessage.experimental_attachments.length > 0) {
+              const attachment = latestUserMessage.experimental_attachments[0];
+              if (attachment.url.startsWith('data:image')) {
+                base64Image = attachment.url.split(',')[1];
+              }
             } 
             
             if (!base64Image) {
@@ -203,20 +204,21 @@ Routing logic:
               confidence: data.confidence,
               message: `Real PyTorch model invoked! The image was classified as a '${data.prediction}' with ${data.confidence}% confidence.`
             };
-          } catch (e: any) {
-            return { error: "Failed to connect to local PyTorch Vision model on port 8001: " + e.message };
+          } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : 'Unknown error';
+            return { error: "Failed to connect to local PyTorch Vision model on port 8001: " + msg };
           }
         }
-      } as any)
+      })
     };
 
     // 4. Stream response
     const result = await streamText({
-      model: selectedModel as any,
+      model: selectedModel,
       messages,
       system: "You are ZENO AI. You follow the principle: SIMPLE. INTELLIGENT. CONSISTENT. You help the user build, think, create, research, code, and automate. You have access to tools.",
       tools: aiTools,
-      onFinish: async ({ text, usage }: { text: string; usage: any }) => {
+      onFinish: async ({ text, usage }: { text: string; usage?: { totalTokens?: number } }) => {
         // 5. Memory System: Save the AI's response to the database
         try {
           await prisma.message.create({

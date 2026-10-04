@@ -1,7 +1,5 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
 import { Sidebar } from '@/components/Sidebar';
 
 export default async function Dashboard() {
@@ -39,7 +37,7 @@ export default async function Dashboard() {
           
           <div>
             <h1 className="text-3xl font-bold mb-1">Welcome back.</h1>
-            <p className="text-text-secondary">Here is what's happening in your workspace today.</p>
+            <p className="text-text-secondary">Here is what&apos;s happening in your workspace today.</p>
           </div>
 
           {/* Quick Actions */}
