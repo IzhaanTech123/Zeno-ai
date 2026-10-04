@@ -319,7 +319,7 @@ export default function ChatInterface() {
                     <option value="gpt-4o">Zeno Fast</option>
                     <option value="claude-3-5-sonnet">Zeno Reasoning</option>
                     <option value="gemini-1.5-pro">Zeno Vision</option>
-                    <option value="ollama">Zeno Creative</option>
+                    <option value="ollama">Ollama (Free / Local)</option>
                   </select>
                   
                   <button type="submit" disabled={(!(input || '').trim() && !files?.length) || isLoading} className="p-2 text-white bg-ai-blue hover:bg-ai-blue/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors flex items-center justify-center">
