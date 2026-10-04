@@ -1,8 +1,12 @@
 import { streamText, tool } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { openai, createOpenAI } from "@ai-sdk/openai";
 import { google } from "@ai-sdk/google";
 import { anthropic } from "@ai-sdk/anthropic";
-import { ollama } from "ollama-ai-provider";
+
+const ollamaClient = createOpenAI({
+  baseURL: "http://127.0.0.1:11434/v1",
+  apiKey: "ollama",
+});
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 
@@ -53,27 +57,36 @@ export async function POST(req: Request) {
 
     // INTELLIGENT ROUTING LOGIC
     if (model === "auto" || !model) {
-      const { generateObject } = await import("ai");
-      const { z: zodLib } = await import("zod");
-      
-      const classification = await generateObject({
-        model: google("gemini-1.5-flash"),
-        system: `You are the brain of Zeno AI, an intelligent router. 
+      if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+        try {
+          const { generateObject } = await import("ai");
+          const { z: zodLib } = await import("zod");
+          
+          const classification = await generateObject({
+            model: google("gemini-1.5-flash"),
+            system: `You are the brain of Zeno AI, an intelligent router. 
 Analyze the user's prompt and determine the absolute best AI model for the task.
 Routing logic:
 - 'claude-3-5-sonnet': Best for coding, complex logical reasoning, UI/UX tasks, and Next.js/React.
 - 'gpt-4o': Best for general robust assistance, text generation, data processing, and common sense.
 - 'gemini-1.5-pro': Best for large context, research, long documents, multi-modal vision tasks.
 - 'ollama': Best for privacy-focused, local fallback tasks.`,
-        prompt: `User Prompt: ${latestUserMessage.content}`,
-        schema: zodLib.object({
-          selectedModel: zodLib.enum(['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'ollama']),
-          reason: zodLib.string()
-        })
-      });
-      
-      actualModelName = classification.object.selectedModel;
-      console.log(`[Zeno Orchestrator] Routed to ${actualModelName} because: ${classification.object.reason}`);
+            prompt: `User Prompt: ${latestUserMessage.content}`,
+            schema: zodLib.object({
+              selectedModel: zodLib.enum(['claude-3-5-sonnet', 'gpt-4o', 'gemini-1.5-pro', 'ollama']),
+              reason: zodLib.string()
+            })
+          });
+          actualModelName = classification.object.selectedModel;
+          console.log(`[Zeno Orchestrator] Routed to ${actualModelName} because: ${classification.object.reason}`);
+        } catch (e) {
+          console.log("[Zeno Orchestrator] Router fallback to local free model:", e);
+          actualModelName = "ollama";
+        }
+      } else {
+        // 100% Free local default when no Google key is set
+        actualModelName = "ollama";
+      }
     }
 
     // Access Control & Token Usage Variables
@@ -99,14 +112,16 @@ Routing logic:
         selectedModel = anthropic("claude-3-5-sonnet-20240620");
         break;
       case "ollama":
-        selectedModel = ollama("llama3");
+        selectedModel = ollamaClient("qwen2.5:0.5b");
         break;
       case "gemini-1.5-flash":
         selectedModel = google("gemini-1.5-flash");
         break;
       case "gemini-1.5-pro":
       default:
-        selectedModel = google("gemini-1.5-pro-latest");
+        selectedModel = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+          ? google("gemini-1.5-pro-latest")
+          : ollamaClient("qwen2.5:0.5b");
         break;
     }
 
